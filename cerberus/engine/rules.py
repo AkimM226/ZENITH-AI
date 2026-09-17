@@ -5,7 +5,7 @@ Impose les garde-fous stricts du document BRIEFING_CERBERUS_v1.md
 """
 import re
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from cerberus.config import (
     ALERT_KEYWORDS,
@@ -38,7 +38,7 @@ class RuleEngine:
     def normalize_text(text: str) -> str:
         return text.lower().strip()
 
-    def check_alert_keywords(self, content: str) -> (bool, List[str], str):
+    def check_alert_keywords(self, content: str) -> Tuple[bool, List[str], str]:
         """
         Section 3.2 : Mots-clés déclencheurs d'alerte obligatoire.
         S'appliquent à TOUS les échanges, y compris liste blanche.

@@ -6,9 +6,9 @@ from typing import Dict, Any, Optional
 from dataclasses import asdict
 
 from cerberus.database.repository import Repository
-from .rules import RuleEngine, RuleEvaluationResult
-from .classifier import IntentClassifier, ClassificationResult
-from .drafter import ResponseDrafter
+from cerberus.engine.rules import RuleEngine, RuleEvaluationResult
+from cerberus.engine.classifier import IntentClassifier, ClassificationResult
+from cerberus.engine.drafter import ResponseDrafter
 from cerberus.config import STATUS_RED, STATUS_GREY, STATUS_WHITE
 
 
