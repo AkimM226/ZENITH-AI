@@ -1,0 +1,20 @@
+[
+  {
+    "nom": "Direction Générale",
+    "organisation": "Exemple Entreprise Bobo",
+    "secteur": "Finance / Microfinance",
+    "ville": "Bobo-Dioulasso",
+    "service_cible": "ia_professionnel",
+    "source": "Annuaire Local",
+    "email": "contact@exemple-entreprise.bf"
+  },
+  {
+    "nom": "Responsable Pédagogique",
+    "organisation": "Institut Technique Exemple",
+    "secteur": "Enseignement Supérieur / Technique",
+    "ville": "Bobo-Dioulasso",
+    "service_cible": "arduino",
+    "source": "Portail Formation",
+    "email": "pedagogie@exemple-institut.bf"
+  }
+]

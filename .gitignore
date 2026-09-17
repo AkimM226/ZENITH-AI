@@ -20,3 +20,8 @@ credentials.json
 *.db
 data/*.db
 !data/.gitkeep
+
+# Audio cache files (VOX TTS)
+data/audio/
+*.mp3
+*.wav

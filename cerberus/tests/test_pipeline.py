@@ -90,7 +90,13 @@ def test_pipeline_validation_and_downgrade(pipeline, temp_repo):
 def test_prospection_and_briefing(temp_repo):
     """Vérifie la génération autonome de prospects et le briefing à la demande."""
     prosp = ProspectionEngine(repo=temp_repo)
-    batch = prosp.generate_prospects_batch()
+    sample_targets = [
+        {"nom": "DG", "organisation": "Banque Test", "secteur": "Finance", "email": "contact@banque-test.bf", "service_cible": "ia_professionnel"},
+        {"nom": "Pédagogie", "organisation": "Institut Test", "secteur": "Tech", "email": "pedago@inst-test.bf", "service_cible": "arduino"},
+        {"nom": "DSI", "organisation": "PME Test", "secteur": "Agro", "email": "dsi@pme-test.bf", "service_cible": "ia_dev"},
+        {"nom": "RH", "organisation": "Clinique Test", "secteur": "Santé", "email": "rh@clinique-test.bf", "service_cible": "ia_initiation"},
+    ]
+    batch = prosp.generate_prospects_batch(prospects=sample_targets)
 
     assert len(batch) == 4
     # Tous les messages doivent être sans prix ferme

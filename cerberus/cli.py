@@ -1,13 +1,10 @@
 import sys
+import time
+import signal
 import argparse
-import uvicorn
+from datetime import datetime
 from typing import Optional
-
-# Support UTF-8 sur Windows
-if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+import uvicorn
 
 
 from .database.repository import Repository
@@ -32,12 +29,21 @@ def cmd_ui(args):
 def cmd_prospection(args):
     repo = Repository()
     engine = ProspectionEngine(repo)
-    print("[*] Lancement du module de prospection autonome (Bobo & Ouaga)...")
-    batch = engine.generate_prospects_batch()
-    print(f"[+] {len(batch)} prospects qualifiés générés et placés en Liste Grise :")
+    print(f"[*] Module de Prospection Sécurisé CERBERUS")
+    if args.file:
+        print(f"    Source des prospects : {args.file}")
+    else:
+        print(f"    Source par défaut : data/prospects.json")
+
+    batch = engine.generate_prospects_batch(file_path=args.file)
+    if not batch:
+        print("[!] Aucun prospect traité. Veuillez renseigner un fichier JSON valide (ex: data/prospects.example.json).")
+        return
+
+    print(f"[+] {len(batch)} prospect(s) qualifié(s) généré(s) et placé(s) en Liste Grise :")
     for p in batch:
-        print(f"  - {p['nom']} ({p['organisation']}) [{p['secteur']}]")
-        print(f"    Message d'accroche sans prix ferme généré.")
+        print(f"  - {p['nom']} ({p['organisation']}) [{p['secteur']}] -> {p.get('email')}")
+        print(f"    Message d'accroche sans prix ferme préparé pour validation.")
 
 
 def cmd_simulate(args):
@@ -71,6 +77,24 @@ def cmd_simulate(args):
     print(f"\n[PROPOSITION DE RÉPONSE] :\n{result['generated_reply']}")
 
 
+def run_worker_cycle(repo: Repository, client, pipeline: CerberusPipeline) -> int:
+    """Exécute un cycle unique de relève et traitement d'emails."""
+    messages = client.fetch_unread_messages()
+    count = len(messages)
+    for msg in messages:
+        sender = msg.get("from", "inconnu@example.com")
+        subject = msg.get("subject", "")
+        body = msg.get("body", "")
+        res = pipeline.process_incoming_email(
+            sender_email=sender,
+            subject=subject,
+            content=body,
+            message_id=msg.get("id")
+        )
+        print(f"    [{datetime.now().strftime('%H:%M:%S')}] '{subject}' -> Décision : {res['decision']}")
+    return count
+
+
 def cmd_worker(args):
     repo = Repository()
     client = GmailClient()
@@ -82,17 +106,78 @@ def cmd_worker(args):
         print("[!] Gmail API non configuré (token.json absent). Mode MockGmailClient actif.")
         client = MockGmailClient()
 
-    messages = client.fetch_unread_messages()
-    print(f"[*] {len(messages)} message(s) non lu(s) trouvé(s).")
-    for msg in messages:
-        sender = msg.get("from", "inconnu@example.com")
-        subject = msg.get("subject", "")
-        body = msg.get("body", "")
-        res = pipeline.process_incoming_email(sender_email=sender, subject=subject, content=body, message_id=msg.get("id"))
-        print(f"    Traite '{subject}' -> Décision : {res['decision']}")
+    count = run_worker_cycle(repo, client, pipeline)
+    print(f"[*] Cycle terminé : {count} message(s) traité(s).")
+
+
+def cmd_daemon(args):
+    """
+    Mode service continu de surveillance des emails entrants (Section 2.2 Addendum V1).
+    Tourne en boucle avec un intervalle configurable jusqu'à réception de Ctrl+C.
+    """
+    repo = Repository()
+    dry_run = getattr(args, "dry_run", False)
+    interval = getattr(args, "interval", 120)
+
+    if dry_run:
+        print(f"[!] Démarrage CERBERUS DAEMON en MODE SIMULATION (MockGmailClient)")
+        client = MockGmailClient()
+    else:
+        client = GmailClient()
+        if client.is_connected():
+            print(f"[+] Démarrage CERBERUS DAEMON connecté à Gmail API réel")
+        else:
+            print(f"[!] Gmail API non configuré. Repli automatique sur MockGmailClient.")
+            client = MockGmailClient()
+
+    pipeline = CerberusPipeline(repo=repo, email_sender=client if client.is_connected() else None)
+
+    print(f"[*] Surveillance continue active (cycle toutes les {interval} secondes).")
+    print(f"[*] Appuyez sur Ctrl+C pour arrêter le service proprement.\n")
+
+    cycle_num = 0
+    try:
+        while True:
+            cycle_num += 1
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"--- [Cycle #{cycle_num} | {now_str}] Relève des emails...")
+            try:
+                processed = run_worker_cycle(repo, client, pipeline)
+                if processed == 0:
+                    print(f"    Aucun nouvel email non lu.")
+            except Exception as e:
+                print(f"    [!] Erreur lors de la relève du cycle #{cycle_num} : {e}")
+
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print(f"\n[!] Signal d'arrêt reçu (Ctrl+C). Arrêt propre du démon CERBERUS.")
+        print(f"[*] Total cycles exécutés : {cycle_num}. Base de données intacte. Au revoir.")
+
+
+def cmd_vox(args):
+    """Lance l'assistant vocal local VOX pour Akim (Section 3 Addendum V1)."""
+    try:
+        from .vox.engine import VoxEngine
+    except ImportError as e:
+        print(f"[!] Le module VOX nécessite des dépendances audio : {e}")
+        return
+
+    vox = VoxEngine(
+        wake_word=args.wake_word,
+        ptt_mode=args.ptt,
+        voice_gender=args.voice
+    )
+    vox.run()
 
 
 def main():
+    # Support UTF-8 sur terminal Windows interactif
+    if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     parser = argparse.ArgumentParser(description="CERBERUS V1 — Agent Commercial Autonome")
     subparsers = parser.add_subparsers(dest="command", help="Commandes disponibles")
 
@@ -109,6 +194,7 @@ def main():
 
     # Prospection
     p_prospect = subparsers.add_parser("prospection", help="Générer un lot de prospects cibles qualifiés")
+    p_prospect.add_argument("--file", default=None, help="Chemin vers un fichier JSON de prospects réels")
     p_prospect.set_defaults(func=cmd_prospection)
 
     # Simulation
@@ -119,9 +205,22 @@ def main():
     p_sim.add_argument("--content", required=True, help="Corps du message")
     p_sim.set_defaults(func=cmd_simulate)
 
-    # Worker
-    p_worker = subparsers.add_parser("worker", help="Relever les emails non lus et les traiter")
+    # Worker (cycle unique)
+    p_worker = subparsers.add_parser("worker", help="Relever les emails non lus une fois et les traiter")
     p_worker.set_defaults(func=cmd_worker)
+
+    # Daemon (surveillance continue)
+    p_daemon = subparsers.add_parser("daemon", help="Exécuter la surveillance des emails en continu")
+    p_daemon.add_argument("--interval", type=int, default=120, help="Intervalle en secondes entre chaque relève (défaut: 120)")
+    p_daemon.add_argument("--dry-run", action="store_true", help="Exécuter en mode simulation sans modifier la boîte réelle")
+    p_daemon.set_defaults(func=cmd_daemon)
+
+    # VOX (Assistant Vocal Local)
+    p_vox = subparsers.add_parser("vox", help="Démarrer l'assistant vocal local VOX pour Akim")
+    p_vox.add_argument("--wake-word", default="cerberus", choices=["cerberus", "zenith"], help="Mot-clé d'activation vocale")
+    p_vox.add_argument("--ptt", action="store_true", help="Mode Push-to-Talk (touche Entrée) au lieu du micro passif continu")
+    p_vox.add_argument("--voice", default="male", choices=["male", "female"], help="Voix de synthèse (male: Henri, female: Denise)")
+    p_vox.set_defaults(func=cmd_vox)
 
     args = parser.parse_args()
     if not args.command:
