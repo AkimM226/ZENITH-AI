@@ -12,7 +12,7 @@ try:
 except ImportError:
     genai = None
 
-from ..config import GEMINI_API_KEY, GEMINI_MODEL, STATUS_RED, STATUS_WHITE, TARIFS
+from cerberus.config import GEMINI_API_KEY, GEMINI_MODEL, STATUS_RED, STATUS_WHITE, TARIFS
 
 
 class ResponseDrafter:

@@ -13,7 +13,7 @@ try:
 except ImportError:
     genai = None
 
-from ..config import GEMINI_API_KEY, GEMINI_MODEL
+from cerberus.config import GEMINI_API_KEY, GEMINI_MODEL
 
 
 class ClassificationResult(BaseModel):

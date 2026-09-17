@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
-from ..config import DB_PATH, STATUS_RED, STATUS_GREY, STATUS_WHITE, WHITE_LIST_THRESHOLD
+from cerberus.config import DB_PATH, STATUS_RED, STATUS_GREY, STATUS_WHITE, WHITE_LIST_THRESHOLD
 
 
 class Repository:

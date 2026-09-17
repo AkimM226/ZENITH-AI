@@ -5,11 +5,11 @@ Module 1 de ZENITH-SYSTEM
 from typing import Dict, Any, Optional
 from dataclasses import asdict
 
-from ..database.repository import Repository
+from cerberus.database.repository import Repository
 from .rules import RuleEngine, RuleEvaluationResult
 from .classifier import IntentClassifier, ClassificationResult
 from .drafter import ResponseDrafter
-from ..config import STATUS_RED, STATUS_GREY, STATUS_WHITE
+from cerberus.config import STATUS_RED, STATUS_GREY, STATUS_WHITE
 
 
 class CerberusPipeline:

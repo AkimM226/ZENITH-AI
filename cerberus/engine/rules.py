@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
-from ..config import (
+from cerberus.config import (
     ALERT_KEYWORDS,
     TARIFS,
     STATUS_RED,

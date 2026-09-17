@@ -6,7 +6,7 @@ Section 8.3 & Section 10 du document BRIEFING_CERBERUS_v1.md
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..database.repository import Repository
+from cerberus.database.repository import Repository
 
 
 class BriefingSynthesizer:

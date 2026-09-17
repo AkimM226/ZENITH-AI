@@ -8,11 +8,11 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from typing import Optional
 
-from ..database.repository import Repository
-from ..modules.briefing import BriefingSynthesizer
-from ..modules.prospection import ProspectionEngine
-from ..engine.pipeline import CerberusPipeline
-from ..config import CALIBRATION_MODE
+from cerberus.database.repository import Repository
+from cerberus.modules.briefing import BriefingSynthesizer
+from cerberus.modules.prospection import ProspectionEngine
+from cerberus.engine.pipeline import CerberusPipeline
+from cerberus.config import CALIBRATION_MODE
 
 app = FastAPI(title="CERBERUS V1 - Supervision", description="Dashboard de supervision pour Akim (ZENITH AI)")
 

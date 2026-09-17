@@ -6,8 +6,8 @@ Section 6 du document BRIEFING_CERBERUS_v1.md
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from ..database.repository import Repository
-from ..config import STATUS_GREY
+from cerberus.database.repository import Repository
+from cerberus.config import STATUS_GREY
 
 
 class ProspectionEngine:
