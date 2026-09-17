@@ -32,3 +32,10 @@ build-backend = "uv_build"
 pythonpath = ["."]
 testpaths = ["cerberus/tests"]
 
+[tool.pyright]
+extraPaths = ["."]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+include = ["cerberus", "src"]
+exclude = [".venv", "data", "**/__pycache__"]
