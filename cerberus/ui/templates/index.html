@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERBERUS V1 — Supervision ZENITH AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(0, 229, 255, 0.3);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-cyan: #00e5ff;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-emerald: #10b981;
+            --glow-cyan: rgba(0, 229, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 229, 255, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.04) 0%, transparent 40%);
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+        }
+
+        .brand-title h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(to right, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+        }
+
+        .badge-calibration {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(139, 92, 246, 0.2));
+            border-color: var(--accent-cyan);
+            color: #fff;
+        }
+
+        .btn-cyan:hover {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(139, 92, 246, 0.3));
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+        }
+
+        .btn-emerald {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--accent-emerald);
+            color: #34d399;
+        }
+
+        .btn-emerald:hover {
+            background: rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-red {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--accent-red);
+            color: #f87171;
+        }
+
+        .btn-red:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .kpi-header {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .kpi-note {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Main 2-column layout */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Alerts & Drafts items */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert-item {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-left: 4px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .alert-item.urgent {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+        }
+
+        .alert-item.standard {
+            border-left-color: var(--accent-amber);
+            background: rgba(245, 158, 11, 0.05);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .item-sender {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .item-motif {
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            color: #e5e7eb;
+        }
+
+        .item-context {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.6rem;
+            border-radius: 6px;
+            color: #d1d5db;
+            white-space: pre-wrap;
+            margin-bottom: 0.75rem;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .draft-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .draft-reason {
+            font-size: 0.8rem;
+            color: var(--accent-amber);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .draft-body {
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            color: #e5e7eb;
+            white-space: pre-wrap;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .draft-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Contacts and Tables */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-list {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-rouge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-grise {
+            background: rgba(156, 163, 175, 0.15);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .badge-blanche {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Simulation Form */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+        }
+
+        /* Briefing Box */
+        .briefing-box {
+            background: rgba(0, 229, 255, 0.03);
+            border: 1px solid rgba(0, 229, 255, 0.15);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            color: #e5e7eb;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <div class="brand-logo">C</div>
+        <div class="brand-title">
+            <h1>CERBERUS V1</h1>
+            <div class="brand-subtitle">ZENITH AI — Module 1 Commercial</div>
+        </div>
+    </div>
+    <div class="header-actions">
+        {% if calibration_mode %}
+        <div class="status-badge badge-calibration">
+            <span class="pulse-dot"></span>
+            Mode Calibration V0 (0 Envoi auto)
+        </div>
+        {% endif %}
+        <form action="/api/prospects/generate" method="post" style="display:inline;">
+            <button type="submit" id="btn-run-prospection" class="btn btn-cyan">
+                ⚡ Lancer Prospection
+            </button>
+        </form>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span>Fiabilité Réponses</span>
+                <span>🎯</span>
+            </div>
+            <div class="kpi-value" style="color: var(--accent-emerald);">{{ briefing.metrics.taux_fiabilite }}%</div>
+            <div class="kpi-note">Taux validé sans retouche par Akim</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span>Alertes en attente</span>
+                <span>🚨</span>
+            </div>
+            <div class="kpi-value" style="color: {% if briefing.urgent_alerts|length > 0 %}var(--accent-red){% else %}var(--text-main){% endif %};">
+                {{ briefing.urgent_alerts|length + briefing.standard_alerts|length }}
+            </div>
+            <div class="kpi-note">{{ briefing.urgent_alerts|length }} urgente(s) prioritaire(s)</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span>Brouillons à arbitrer</span>
+                <span>📝</span>
+            </div>
+            <div class="kpi-value" style="color: var(--accent-cyan);">{{ pending_drafts|length }}</div>
+            <div class="kpi-note">En attente de validation</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span>Prospects Qualifiés</span>
+                <span>👥</span>
+            </div>
+            <div class="kpi-value" style="color: var(--accent-purple);">{{ briefing.prospects_count }}</div>
+            <div class="kpi-note">En Liste Grise (Bobo & Ouaga)</div>
+        </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE -->
+    <div class="layout-grid">
+
+        <!-- LEFT COLUMN: ALERTS & DRAFTS -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- ARBITRAGES PRIORITAIRES & ALERTES -->
+            <div class="card" id="section-alerts">
+                <div class="card-title">
+                    <span>🚨 File d'Arbitrages & Alertes Déclenchées</span>
+                    <span class="card-badge">{{ pending_alerts|length }} en attente</span>
+                </div>
+
+                {% if pending_alerts %}
+                <div class="item-list">
+                    {% for a in pending_alerts %}
+                    <div class="alert-item {% if a.niveau == 'URGENT' %}urgent{% else %}standard{% endif %}">
+                        <div class="item-header">
+                            <span class="item-sender">{{ a.contact_nom or 'Contact Inconnu' }} &lt;{{ a.contact_email }}&gt;</span>
+                            <span style="font-weight: 700; color: {% if a.niveau == 'URGENT' %}var(--accent-red){% else %}var(--accent-amber){% endif %};">
+                                {{ a.niveau }}
+                            </span>
+                        </div>
+                        <div class="item-motif"><strong>Motif :</strong> {{ a.motif }}</div>
+                        {% if a.contexte_email %}
+                        <div class="item-context">{{ a.contexte_email }}</div>
+                        {% endif %}
+                        <form action="/api/alerts/{{ a.id }}/resolve" method="post" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" name="notes" placeholder="Note de résolution optionnelle..." style="flex: 1; font-size: 0.8rem;">
+                            <button type="submit" class="btn btn-emerald" style="padding: 0.35rem 0.75rem;">Résoudre</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 1.5rem 0; font-size: 0.9rem;">
+                    ✨ Aucune alerte en attente. Le système fonctionne dans son cadre nominal.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- BROUILLONS EN ATTENTE DE VALIDATION -->
+            <div class="card" id="section-drafts">
+                <div class="card-title">
+                    <span>📝 Brouillons Générés à Valider</span>
+                    <span class="card-badge">{{ pending_drafts|length }} à relire</span>
+                </div>
+
+                {% if pending_drafts %}
+                <div class="item-list">
+                    {% for d in pending_drafts %}
+                    <div class="draft-item" id="draft-card-{{ d.id }}">
+                        <div class="item-header">
+                            <span class="item-sender">Vers : {{ d.contact_nom }} &lt;{{ d.email_destinataire }}&gt;</span>
+                            <span class="badge-list badge-{{ d.contact_statut|lower }}">{{ d.contact_statut }} ({{ d.consecutive_validated_count }} validés)</span>
+                        </div>
+                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+                            Objet : {{ d.email_sujet }}
+                        </div>
+                        <div class="draft-reason">
+                            🛡️ Retenu par la règle : {{ d.motif_blocage }}
+                        </div>
+
+                        <form action="/api/drafts/{{ d.id }}/validate" method="post" id="form-draft-{{ d.id }}">
+                            <div class="form-group">
+                                <label>Corps proposé par l'IA (modifiable si besoin) :</label>
+                                <textarea name="modified_body" rows="6" style="font-size: 0.85rem; line-height: 1.4;">{{ d.corps_propose }}</textarea>
+                            </div>
+                            <div class="draft-actions">
+                                <button type="submit" class="btn btn-emerald" id="btn-validate-{{ d.id }}">
+                                    ✓ Valider et Expédier
+                                </button>
+                                <button type="button" class="btn btn-red" onclick="document.getElementById('reject-form-{{ d.id }}').submit();">
+                                    ✕ Rejeter
+                                </button>
+                            </div>
+                        </form>
+                        <form action="/api/drafts/{{ d.id }}/reject" method="post" id="reject-form-{{ d.id }}" style="display:none;"></form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 1.5rem 0; font-size: 0.9rem;">
+                    Aucun brouillon en attente de validation.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- JOURNAL DE DECISIONS -->
+            <div class="card" id="section-logs">
+                <div class="card-title">
+                    <span>📜 Journal d'Audit des Décisions (Traçabilité Intégrale)</span>
+                    <span class="card-badge">25 dernières actions</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Heure</th>
+                                <th>Action</th>
+                                <th>Contact</th>
+                                <th>Règles Appliquées</th>
+                                <th>Résultat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for l in decision_logs %}
+                            <tr>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">{{ l.timestamp[11:19] }}</td>
+                                <td><strong>{{ l.type_action }}</strong></td>
+                                <td>{{ l.contact_email or 'Système' }}</td>
+                                <td style="font-size: 0.75rem; color: #d1d5db; max-width: 250px;">{{ l.regles_appliquees }}</td>
+                                <td>
+                                    {% if l.resultat == 'ENVOYE' %}
+                                    <span style="color: var(--accent-emerald); font-weight: 600;">ENVOYÉ</span>
+                                    {% elif l.resultat == 'ALERTE_DECLENCHEE' %}
+                                    <span style="color: var(--accent-red); font-weight: 600;">ALERTE</span>
+                                    {% else %}
+                                    <span style="color: var(--accent-cyan); font-weight: 600;">BROUILLON</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: BRIEFING, SIMULATOR & CONTACTS -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- BRIEFING A LA DEMANDE -->
+            <div class="card" id="section-briefing">
+                <div class="card-title">
+                    <span>⚡ Briefing à la Demande (Akim)</span>
+                    <button class="btn btn-cyan" onclick="location.reload();" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+                        Rafraîchir
+                    </button>
+                </div>
+                <div class="briefing-box">{{ briefing.formatted_text }}</div>
+            </div>
+
+            <!-- SIMULATEUR D'EMAIL ENTRANT (POUR TESTS EN DIRECT) -->
+            <div class="card" id="section-simulator">
+                <div class="card-title">
+                    <span>🧪 Simulateur d'Ingestion d'Emails</span>
+                </div>
+                <form action="/api/simulate-email" method="post">
+                    <div class="form-group">
+                        <label>Expéditeur (Email)</label>
+                        <input type="email" name="sender_email" id="sim-email" value="dg@banque-bobo.bf" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom du contact</label>
+                        <input type="text" name="sender_name" id="sim-name" value="M. Traoré">
+                    </div>
+                    <div class="form-group">
+                        <label>Objet du message</label>
+                        <input type="text" name="subject" id="sim-subject" value="Demande de formation IA pour nos cadres" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contenu du message</label>
+                        <textarea name="content" id="sim-content" rows="4" required>Bonjour Akim, nous souhaitons une formation sur l'IA professionnelle pour 12 directeurs. Pouvons-nous signer un contrat urgent dès demain ?</textarea>
+                    </div>
+                    <button type="submit" id="btn-submit-simulation" class="btn btn-cyan" style="width: 100%;">
+                        Tester l'Analyse CERBERUS
+                    </button>
+                </form>
+            </div>
+
+            <!-- MEMOIRE RELATIONNELLE (CONTACTS) -->
+            <div class="card" id="section-contacts">
+                <div class="card-title">
+                    <span>🗂️ Mémoire des Contacts</span>
+                    <span class="card-badge">{{ contacts|length }} fiches</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Contact</th>
+                                <th>Statut</th>
+                                <th>Validations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in contacts[:8] %}
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 500;">{{ c.nom }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ c.email }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge-list badge-{{ c.statut|lower }}">{{ c.statut }}</span>
+                                </td>
+                                <td style="text-align: center; font-weight: 600;">
+                                    {{ c.consecutive_validated_count }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
