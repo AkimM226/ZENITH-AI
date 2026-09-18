@@ -1,4 +1,4 @@
-﻿"""
+"""
 CERBERUS VOX - Assistant Conversationnel avec Function Calling Gemini Natif
 Addendum 4 : Gemini devient le cerveau decisonnel principal.
 Les garde-fous de confirmation restent geres exclusivement cote Python.
@@ -124,6 +124,9 @@ def _build_gemini_tools():
         return None
 
 
+_DEFAULT_KEY = object()
+
+
 class VoxAssistant:
     """
     Cerveau conversationnel de l Orbe et de VOX.
@@ -131,9 +134,9 @@ class VoxAssistant:
     Memoire court terme et garde-fous de confirmation strictement conserves.
     """
 
-    def __init__(self, data_tools: Optional[VoxDataTools] = None, api_key: Optional[str] = None):
+    def __init__(self, data_tools: Optional[VoxDataTools] = None, api_key: Any = _DEFAULT_KEY):
         self.tools = data_tools or VoxDataTools()
-        self.api_key = api_key or GEMINI_API_KEY
+        self.api_key = GEMINI_API_KEY if api_key is _DEFAULT_KEY else api_key
         self.client = None
         self._gemini_tools = _build_gemini_tools()
 
@@ -363,7 +366,7 @@ class VoxAssistant:
                 final_response = self.client.models.generate_content(
                     model=GEMINI_MODEL,
                     contents=[
-                        types.Content(role="user", parts=[types.Part.from_text(user_query)]),
+                        types.Content(role="user", parts=[types.Part.from_text(text=user_query)]),
                         types.Content(role="model", parts=[part]),
                         types.Content(role="user", parts=[tool_response_part]),
                     ],

@@ -17,7 +17,7 @@ DB_PATH = DATA_DIR / "cerberus.db"
 
 # Clé API Gemini & Modèle
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 # Mode Calibration V0 : si True, 100% des messages partent en brouillon pour validation, 0 envoi automatique
 CALIBRATION_MODE = os.getenv("CERBERUS_CALIBRATION_MODE", "true").lower() in ("true", "1", "yes")
