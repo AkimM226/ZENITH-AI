@@ -309,11 +309,18 @@ class CerberusOrb {
       }
     });
 
-    // Bascule Mode Omniprésent
+    // Bascule Mode Omniprésent (synchronisé avec pywebviewready)
     if (this.btnOmnipresent) {
-      this.btnOmnipresent.addEventListener("click", () => {
+      this.btnOmnipresent.addEventListener("click", async () => {
         if (window.pywebview && window.pywebview.api) {
-          window.pywebview.api.toggle_mode();
+          try {
+            const res = await window.pywebview.api.toggle_mode();
+            if (res === "not_ready") {
+              this.showSpeech("Initialisation en cours... Patientez un instant.");
+            }
+          } catch (err) {
+            console.warn("Erreur bascule Desktop :", err);
+          }
         } else {
           this.sendQuery("Passe en mode omniprésent");
         }
