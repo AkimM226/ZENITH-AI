@@ -18,13 +18,17 @@ except ImportError:
 class DesktopBridge:
     """Passerelle API Python exposée au frontend JavaScript de l'Orbe."""
 
-    def __init__(self, window=None):
+    window: Optional[object]
+    is_omnipresent: bool = False
+    is_ready: bool = False
+
+    def __init__(self, window: Optional[object] = None):
         self.window = window
-        self.is_omnipresent = False
-        self.is_ready = False  # Mesure 2.1 : indicateur de disponibilité WebView2
+        self.is_omnipresent: bool = False
+        self.is_ready: bool = False  # Mesure 2.1 : indicateur de disponibilité WebView2
         self._lock = threading.Lock()
 
-    def set_window(self, window):
+    def set_window(self, window: Optional[object]):
         self.window = window
 
     def on_loaded(self, *args, **kwargs):
@@ -58,13 +62,13 @@ class DesktopBridge:
             return "not_ready"
 
         with self._lock:
+            screens = getattr(webview, "screens", None) if webview is not None else None
             if mode == "omnipresent":
                 # Mode Omniprésent : bulle flottante compacte, always-on-top, sans cadre
                 self.is_omnipresent = True
                 try:
                     self.window.resize(260, 260)
                     self.window.on_top = True
-                    screens = webview.screens
                     if screens:
                         primary = screens[0]
                         target_x = max(0, primary.width - 290)
@@ -80,7 +84,6 @@ class DesktopBridge:
                 try:
                     self.window.resize(1020, 720)
                     self.window.on_top = False
-                    screens = webview.screens
                     if screens:
                         primary = screens[0]
                         target_x = max(50, (primary.width - 1020) // 2)
@@ -161,6 +164,10 @@ def run_desktop_app(host: str = "127.0.0.1", port: int = 8000, start_omnipresent
         on_top=start_omnipresent,
         background_color="#050811"
     )
+    if not window:
+        print("[!] Erreur : Impossible de créer la fenêtre native PyWebView.")
+        return
+
     bridge.set_window(window)
 
     # 4. Mesure 2.1 : S'abonner formellement à l'événement 'loaded'

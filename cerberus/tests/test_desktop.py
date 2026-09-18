@@ -16,7 +16,7 @@ def test_desktop_bridge_not_ready_guard():
     bridge = DesktopBridge(window=mock_window)
 
     # 1. Par défaut, la fenêtre n'est pas prête
-    assert bridge.is_ready is False
+    assert not bridge.is_ready
 
     # 2. Une tentative de set_mode doit refuser immédiatement sans toucher à la fenêtre
     res_mode = bridge.set_mode("omnipresent")
@@ -30,7 +30,7 @@ def test_desktop_bridge_not_ready_guard():
 
     # 4. Déclenchement de l'événement loaded par WebView2
     bridge.on_loaded()
-    assert bridge.is_ready is True
+    assert bridge.is_ready
 
     # 5. Désormais, set_mode s'exécute en toute sécurité
     res_ready = bridge.set_mode("omnipresent")
