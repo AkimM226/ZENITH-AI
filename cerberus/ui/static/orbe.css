@@ -1,0 +1,495 @@
+/* ==========================================================================
+   CERBERUS ORBE — Feux de Présence & Design System
+   ZENITH AI — Addendum 2
+   ========================================================================== */
+
+:root {
+  --bg-deep: #050811;
+  --bg-surface: rgba(13, 20, 36, 0.75);
+  --border-subtle: rgba(56, 189, 248, 0.15);
+  --border-glow: rgba(56, 189, 248, 0.4);
+
+  /* Couleurs d'états de l'Orbe */
+  --orb-idle-primary: #0284c7;
+  --orb-idle-glow: #38bdf8;
+  --orb-listening-primary: #818cf8;
+  --orb-listening-glow: #c084fc;
+  --orb-thinking-primary: #06b6d4;
+  --orb-thinking-glow: #22d3ee;
+  --orb-speaking-primary: #10b981;
+  --orb-speaking-glow: #34d399;
+  --orb-alert-primary: #ef4444;
+  --orb-alert-glow: #f97316;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* Grille de fond subtile */
+.ambient-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(14, 116, 144, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Barre de contrôle supérieure discrète */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 20;
+  background: linear-gradient(180deg, rgba(5, 8, 17, 0.8) 0%, transparent 100%);
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.brand-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.window-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Scène centrale : Orbe et Cartes */
+.stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Conteneur de l'Orbe */
+.orb-wrapper {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orb-wrapper:hover {
+  transform: scale(1.04);
+}
+
+/* Sphère de l'Orbe */
+.orb {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-idle-glow) 30%, var(--orb-idle-primary) 70%, #032042 100%);
+  box-shadow: 
+    0 0 40px var(--orb-idle-glow),
+    0 0 80px rgba(56, 189, 248, 0.4),
+    inset 0 0 25px rgba(255, 255, 255, 0.8);
+  animation: orb-breathe 4.5s ease-in-out infinite;
+  transition: all 0.5s ease;
+}
+
+/* Anneaux énergétiques orbitaux */
+.orb-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
+
+.ring-1 {
+  width: 180px;
+  height: 180px;
+  animation: rotate-ring 14s linear infinite;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.ring-2 {
+  width: 215px;
+  height: 215px;
+  animation: rotate-ring-reverse 20s linear infinite;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+/* --- ÉTATS VISUELS DE L'ORBE (Section 3.1) --- */
+
+/* 1. Écoute (Listening) */
+.state-listening .orb {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-listening-glow) 35%, var(--orb-listening-primary) 70%, #2e1065 100%);
+  box-shadow: 
+    0 0 55px var(--orb-listening-glow),
+    0 0 100px rgba(192, 132, 252, 0.5),
+    inset 0 0 30px rgba(255, 255, 255, 0.9);
+  animation: orb-listen 1.2s ease-in-out infinite alternate;
+}
+.state-listening .orb-ring {
+  border-color: rgba(192, 132, 252, 0.5);
+}
+
+/* 2. Réflexion (Thinking) */
+.state-thinking .orb {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-thinking-glow) 30%, var(--orb-thinking-primary) 70%, #083344 100%);
+  box-shadow: 
+    0 0 45px var(--orb-thinking-glow),
+    0 0 90px rgba(34, 211, 238, 0.4),
+    inset 0 0 25px #ffffff;
+  animation: orb-think 0.8s ease-in-out infinite alternate;
+}
+.state-thinking .ring-1 {
+  animation: rotate-ring 3s linear infinite;
+}
+.state-thinking .ring-2 {
+  animation: rotate-ring-reverse 4s linear infinite;
+}
+
+/* 3. Parole (Speaking) */
+.state-speaking .orb {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-speaking-glow) 35%, var(--orb-speaking-primary) 70%, #064e3b 100%);
+  box-shadow: 
+    0 0 60px var(--orb-speaking-glow),
+    0 0 110px rgba(52, 211, 153, 0.5),
+    inset 0 0 30px #ffffff;
+  animation: orb-speak 0.45s ease-in-out infinite alternate;
+}
+.state-speaking .orb-ring {
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+/* 4. Alerte critique (Alert) */
+.state-alert .orb {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-alert-glow) 35%, var(--orb-alert-primary) 70%, #450a0a 100%);
+  box-shadow: 
+    0 0 65px var(--orb-alert-glow),
+    0 0 120px rgba(239, 68, 68, 0.6),
+    inset 0 0 35px #ffffff;
+  animation: orb-alert 1.5s ease-in-out infinite;
+}
+.state-alert .orb-ring {
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* Sous-titre ou réponse textuelle dynamique sous l'orbe */
+.speech-bubble {
+  position: absolute;
+  top: 68%;
+  max-width: 620px;
+  text-align: center;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #e2e8f0;
+  padding: 14px 24px;
+  border-radius: 16px;
+  background: rgba(13, 20, 36, 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.speech-bubble.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- CARTES CONTEXTUELLES TEMPORAIRES (Section 3.2) --- */
+.context-panel {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%) translateX(20px);
+  width: 380px;
+  max-height: 75vh;
+  background: var(--bg-surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 15;
+}
+
+.context-panel.active {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  pointer-events: auto;
+}
+
+.context-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.context-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+  line-height: 1;
+}
+
+.context-close:hover {
+  color: #ffffff;
+}
+
+.context-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.context-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.2s ease;
+}
+
+.context-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item-badge {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-urgent { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-standard { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-draft { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+.item-desc {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* Barre de saisie inférieure (voix + texte) */
+.bottom-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(13, 20, 36, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 30px;
+  padding: 6px 10px 6px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.bottom-bar:focus-within {
+  border-color: var(--border-glow);
+  box-shadow: 0 10px 35px rgba(56, 189, 248, 0.2);
+}
+
+.input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.mic-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mic-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.mic-btn.recording {
+  background: #ef4444;
+  color: #ffffff;
+  animation: mic-pulse 1s infinite alternate;
+}
+
+.send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #0284c7;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.send-btn:hover {
+  background: #0369a1;
+}
+
+/* Animations clés */
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes orb-listen {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1.18); }
+}
+
+@keyframes orb-think {
+  0% { transform: scale(0.96); filter: brightness(0.9); }
+  100% { transform: scale(1.06); filter: brightness(1.2); }
+}
+
+@keyframes orb-speak {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.14); }
+}
+
+@keyframes orb-alert {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 30px #ef4444); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 60px #f97316); }
+}
+
+@keyframes rotate-ring {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-ring-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes mic-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); }
+  100% { transform: scale(1.1); box-shadow: 0 0 18px rgba(239, 68, 68, 0.8); }
+}

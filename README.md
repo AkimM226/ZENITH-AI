@@ -29,25 +29,30 @@ python -m uv sync
 ### Commandes CLI principales
 
 ```bash
-# 1. Consulter le briefing de supervision à la demande
+# 1. Lancer l'application Desktop native (Orbe de présence - Addendum 2)
+python -m cerberus app
+
+# 2. Lancer l'Orbe directement en mode omniprésent flottant
+python -m cerberus app --omnipresent
+
+# 3. Lancer l'interface web dans votre navigateur
+python -m cerberus ui --port 8000
+# -> Orbe conversationnelle : http://127.0.0.1:8000/
+# -> Mode manuel classique  : http://127.0.0.1:8000/manual
+
+# 4. Consulter le briefing de supervision à la demande
 python -m cerberus briefing
 
-# 2. Lancer l'interface web de supervision locale
-python -m cerberus ui --port 8000
-
-# 3. Lancer la surveillance continue en arrière-plan (Démon)
+# 5. Lancer la surveillance continue en arrière-plan (Démon)
 python -m cerberus daemon --interval 120
 
-# 4. Démarrer l'assistant vocal local VOX (pour Akim)
+# 6. Démarrer l'assistant vocal local en terminal (VOX)
 python -m cerberus vox --wake-word cerberus
 
-# 5. Importer et préparer des prospects qualifiés (en liste grise)
+# 7. Importer et préparer des prospects qualifiés (en liste grise)
 python -m cerberus prospection --file data/prospects.example.json
 
-# 6. Simuler l'ingestion d'un message entrant et observer la décision
-python -m cerberus simulate --email "client@test.bf" --name "M. Ouedraogo" --subject "Demande formation Arduino" --content "Bonjour, quel est votre tarif pour 25 personnes sur place ?"
-
-# 7. Lancer la suite de tests automatisés (28 tests unitaires & intégration)
+# 8. Lancer la suite de tests automatisés (30 tests unitaires & intégration)
 python -m uv run pytest cerberus/tests -v
 ```
 

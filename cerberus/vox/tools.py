@@ -1,8 +1,8 @@
 """
 CERBERUS VOX - Outils et Données pour l'Assistant Vocal
-Section 3.4 du document ADDENDUM_CERBERUS_V1_AUDIT_ET_VOX.md
+Section 3.4 du document ADDENDUM_CERBERUS_V1_AUDIT_ET_VOX.md & Addendum 2
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from cerberus.database.repository import Repository
 from cerberus.modules.briefing import BriefingSynthesizer
 
@@ -76,6 +76,24 @@ class VoxDataTools:
             msg.append(f"Brouillon numéro {d['id']} pour {contact}, sujet : {d.get('email_sujet', 'Sans sujet')}.")
         return " ".join(msg)
 
+    def get_alerts_data(self) -> Tuple[str, List[Dict[str, Any]]]:
+        """Retourne le texte oral et la liste des alertes pour carte contextuelle."""
+        alerts = self.repo.list_pending_alerts()
+        oral = self.get_alerts_summary()
+        return oral, alerts
+
+    def get_drafts_data(self) -> Tuple[str, List[Dict[str, Any]]]:
+        """Retourne le texte oral et la liste des brouillons pour carte contextuelle."""
+        drafts = self.repo.list_pending_drafts()
+        oral = self.get_drafts_summary()
+        return oral, drafts
+
+    def get_briefing_full_data(self) -> Tuple[str, Dict[str, Any]]:
+        """Retourne le texte oral et l'ensemble des données de briefing."""
+        oral = self.get_oral_briefing()
+        data = self.briefing_synth.generate_briefing()
+        return oral, data
+
     def execute_draft_validation(self, draft_id: int) -> Dict[str, Any]:
         """
         Valide un brouillon après confirmation explicite.
@@ -86,7 +104,7 @@ class VoxDataTools:
             if res:
                 self.repo.log_decision(
                     type_action="VALIDATION_BROUILLON",
-                    regles_appliquees=["Validation explicite via assistant vocal VOX"],
+                    regles_appliquees=["Validation explicite via assistant vocal VOX / Orbe"],
                     resultat="BROUILLON_VALIDE_PRET_ENVOI",
                     details=f"Action initiée via VOX : Brouillon #{draft_id} validé verbalement par Akim."
                 )
@@ -100,15 +118,13 @@ class VoxDataTools:
         Résout une alerte après confirmation explicite.
         """
         try:
-            res = self.repo.resolve_alert(alert_id, notes="Résolue verbalement par Akim via VOX")
-            if res:
-                self.repo.log_decision(
-                    type_action="RESOLUTION_ALERTE",
-                    regles_appliquees=["Résolution explicite via assistant vocal VOX"],
-                    resultat="ALERTE_RESOLUE",
-                    details=f"Action initiée via VOX : Alerte #{alert_id} classée par Akim."
-                )
-                return {"success": True, "message": f"L'alerte numéro {alert_id} a été résolue."}
+            self.repo.resolve_alert(alert_id, notes="Résolue verbalement par Akim via VOX / Orbe")
+            self.repo.log_decision(
+                type_action="RESOLUTION_ALERTE",
+                regles_appliquees=["Résolution explicite via assistant vocal VOX / Orbe"],
+                resultat="ALERTE_RESOLUE",
+                details=f"Action initiée via VOX : Alerte #{alert_id} classée par Akim."
+            )
+            return {"success": True, "message": f"L'alerte numéro {alert_id} a été résolue."}
         except Exception as e:
             return {"success": False, "message": f"Erreur lors de la résolution de l'alerte {alert_id} : {e}"}
-        return {"success": False, "message": f"Impossible de trouver ou résoudre l'alerte numéro {alert_id}."}

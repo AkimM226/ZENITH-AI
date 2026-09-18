@@ -38,15 +38,19 @@ class VoxTTS:
         await communicate.save(str(output_file))
         return output_file
 
-    def synthesize(self, text: str, filename: Optional[str] = None) -> Path:
-        """Génère le fichier MP3 de manière synchrone."""
+    async def synthesize_async(self, text: str, filename: Optional[str] = None) -> Path:
+        """Génère le fichier MP3 de manière asynchrone (pour FastAPI)."""
         if not filename:
             import uuid
             filename = f"vox_{uuid.uuid4().hex[:8]}.mp3"
 
         out_path = self.cache_dir / filename
-        asyncio.run(self._generate_audio_async(text, out_path))
+        await self._generate_audio_async(text, out_path)
         return out_path
+
+    def synthesize(self, text: str, filename: Optional[str] = None) -> Path:
+        """Génère le fichier MP3 de manière synchrone."""
+        return asyncio.run(self.synthesize_async(text, filename))
 
     def play(self, audio_path: Path):
         """Lit un fichier audio sous Windows."""

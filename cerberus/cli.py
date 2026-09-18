@@ -26,6 +26,15 @@ def cmd_ui(args):
     uvicorn.run("cerberus.ui.server:app", host=args.host, port=args.port, reload=args.reload)
 
 
+def cmd_app(args):
+    """Lance l'application Desktop native avec l'Orbe de présence (Addendum 2)."""
+    try:
+        from .ui.desktop import run_desktop_app
+        run_desktop_app(host=args.host, port=args.port, start_omnipresent=args.omnipresent)
+    except Exception as e:
+        print(f"[!] Erreur au lancement de l'application Desktop : {e}")
+
+
 def cmd_prospection(args):
     repo = Repository()
     engine = ProspectionEngine(repo)
@@ -185,12 +194,19 @@ def main():
     p_briefing = subparsers.add_parser("briefing", help="Afficher le briefing de supervision à la demande")
     p_briefing.set_defaults(func=cmd_briefing)
 
-    # UI
-    p_ui = subparsers.add_parser("ui", help="Lancer le tableau de bord web local")
+    # UI (mode navigateur)
+    p_ui = subparsers.add_parser("ui", help="Lancer l'interface web dans le navigateur")
     p_ui.add_argument("--host", default="127.0.0.1", help="Adresse IP d'écoute")
     p_ui.add_argument("--port", type=int, default=8000, help="Port d'écoute")
     p_ui.add_argument("--reload", action="store_true", help="Rechargement à chaud")
     p_ui.set_defaults(func=cmd_ui)
+
+    # App Desktop Orbe (application native Windows PyWebView)
+    p_app = subparsers.add_parser("app", help="Lancer l'application Desktop native (Orbe de présence)")
+    p_app.add_argument("--host", default="127.0.0.1", help="Adresse IP d'écoute")
+    p_app.add_argument("--port", type=int, default=8000, help="Port d'écoute")
+    p_app.add_argument("--omnipresent", action="store_true", help="Démarrer directement en mode omniprésent flottant")
+    p_app.set_defaults(func=cmd_app)
 
     # Prospection
     p_prospect = subparsers.add_parser("prospection", help="Générer un lot de prospects cibles qualifiés")
