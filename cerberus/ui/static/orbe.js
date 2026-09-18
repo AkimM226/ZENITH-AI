@@ -195,9 +195,17 @@ class CerberusOrb {
   async startVoiceRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.mediaRecorder = new MediaRecorder(stream);
-      this.audioChunks = [];
 
+      // Addendum 4 : format MIME explicite pour eviter fragments ambigus entre navigateurs
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+      this.audioChunks = [];
+      this._recordingStartTime = Date.now();
+
+      // timeslice=250ms : collecte reguliere des chunks, evite les gros blobs vides
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
@@ -205,18 +213,30 @@ class CerberusOrb {
       };
 
       this.mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
+        const durationMs = Date.now() - (this._recordingStartTime || 0);
+        // Addendum 4 : ignorer les enregistrements < 500ms (pas de phrase complete possible)
+        if (durationMs < 500) {
+          this.showSpeech("Trop court — parlez plus longtemps et reessayez.");
+          this.setOrbState("idle");
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
         await this.transcribeAndSend(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
 
-      this.mediaRecorder.start();
+      this.mediaRecorder.start(250);  // timeslice 250ms
       this.isRecording = true;
       this.micBtn.classList.add("recording");
-      this.setOrbState("listening");
-      this.showSpeech("À votre écoute, Akim...");
+
+      // Addendum 4 : delai 150ms avant affichage pour ne pas couper le debut du premier mot
+      setTimeout(() => {
+        this.setOrbState("listening");
+        this.showSpeech("A votre ecoute, Akim...");
+      }, 150);
     } catch (err) {
-      console.error("Accès microphone refusé ou non supporté :", err);
+      console.error("Acces microphone refuse ou non supporte :", err);
       this.showSpeech("Microphone non disponible. Vous pouvez taper au clavier.");
       this.setOrbState("idle");
     }
