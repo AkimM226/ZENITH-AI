@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS brouillons (
     corps_modifie TEXT,
     motif_blocage TEXT NOT NULL,
     statut TEXT NOT NULL DEFAULT 'A_VALIDER', -- 'A_VALIDER', 'VALIDE_ENVOYE', 'MODIFIE_ENVOYE', 'REJETE'
+    texte_original_client TEXT, -- Texte intégral du message original du client (Addendum 6)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     validated_at TIMESTAMP,
     FOREIGN KEY(contact_id) REFERENCES contacts(id)

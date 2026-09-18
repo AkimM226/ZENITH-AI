@@ -67,7 +67,7 @@ class CerberusOrb {
   }
 
   showContextCard(card) {
-    if (!card || !card.items || card.items.length === 0) {
+    if (!card) {
       this.hideContextCard();
       return;
     }
@@ -75,31 +75,104 @@ class CerberusOrb {
     this.contextTitle.textContent = card.title || "Informations";
     this.contextBody.innerHTML = "";
 
-    card.items.forEach(item => {
+    // Addendum 6: nouveaux types de cartes contextuelles
+    if (card.type === "email_context") {
+      // Afficher le contexte complet de l'email original
       const div = document.createElement("div");
       div.className = "context-item";
-
-      if (card.type === "alerts") {
-        div.innerHTML = `
-          <div class="item-badge ${item.niveau === 'URGENT' ? 'badge-urgent' : 'badge-standard'}">
-            Alerte #${item.id} — ${item.niveau}
-          </div>
-          <div style="font-weight: 600; font-size: 0.88rem; color: #f1f5f9;">${item.contact}</div>
-          <div class="item-desc">${item.motif}</div>
-        `;
-      } else if (card.type === "drafts") {
-        div.innerHTML = `
-          <div class="item-badge badge-draft">Brouillon #${item.id}</div>
-          <div style="font-weight: 600; font-size: 0.88rem; color: #f1f5f9;">${item.destinataire}</div>
-          <div style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">${item.sujet}</div>
-          <div class="item-desc">${item.corps}</div>
-        `;
-      } else {
-        div.innerHTML = `<div class="item-desc">${JSON.stringify(item)}</div>`;
-      }
-
+      div.innerHTML = `
+        <div class="item-badge badge-context">Contexte Email</div>
+        <div style="font-weight: 600; font-size: 0.88rem; color: #f1f5f9;">${card.contact_nom}</div>
+        <div style="font-size: 0.8rem; color: #94a3b8;">${card.contact_email}</div>
+        <div style="font-size: 0.85rem; color: #e2e8f0; margin-top: 8px; font-weight: 500;">${card.sujet}</div>
+        <div class="item-desc" style="white-space: pre-wrap; margin-top: 8px;">${card.texte_original}</div>
+        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #334155;">
+          <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Réponse proposée</div>
+          <div class="item-desc" style="white-space: pre-wrap; margin-top: 4px;">${card.corps_propose}</div>
+        </div>
+      `;
       this.contextBody.appendChild(div);
-    });
+
+    } else if (card.type === "suggestions") {
+      // Afficher les variantes de réponse suggérées
+      card.variants.forEach((variant, index) => {
+        const div = document.createElement("div");
+        div.className = "context-item";
+        div.style.cursor = "pointer";
+        div.style.border = "1px solid #334155";
+        div.style.borderRadius = "6px";
+        div.style.padding = "10px";
+        div.style.marginBottom = "8px";
+        div.style.transition = "all 0.2s";
+
+        div.innerHTML = `
+          <div class="item-badge badge-suggestion">Variante ${index + 1}: ${variant.style}</div>
+          <div class="item-desc" style="white-space: pre-wrap;">${variant.texte}</div>
+        `;
+
+        // Click to select this variant
+        div.addEventListener("click", () => {
+          this.sendQuery(`Utilise la variante ${index + 1}: ${variant.style}`);
+        });
+
+        div.addEventListener("mouseenter", () => {
+          div.style.borderColor = "#38bdf8";
+          div.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+        });
+
+        div.addEventListener("mouseleave", () => {
+          div.style.borderColor = "#334155";
+          div.style.backgroundColor = "transparent";
+        });
+
+        this.contextBody.appendChild(div);
+      });
+
+    } else if (card.type === "draft_updated") {
+      // Afficher le brouillon modifié
+      const div = document.createElement("div");
+      div.className = "context-item";
+      div.innerHTML = `
+        <div class="item-badge badge-updated">Brouillon Modifié</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px;">Instruction: ${card.instruction}</div>
+        <div class="item-desc" style="white-space: pre-wrap;">${card.nouveau_corps}</div>
+      `;
+      this.contextBody.appendChild(div);
+
+    } else if (card.items && card.items.length > 0) {
+      // Cartes existantes (alerts, drafts, briefing)
+      card.items.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "context-item";
+
+        if (card.type === "alerts") {
+          div.innerHTML = `
+            <div class="item-badge ${item.niveau === 'URGENT' ? 'badge-urgent' : 'badge-standard'}">
+              Alerte #${item.id} — ${item.niveau}
+            </div>
+            <div style="font-weight: 600; font-size: 0.88rem; color: #f1f5f9;">${item.contact}</div>
+            <div class="item-desc">${item.motif}</div>
+          `;
+        } else if (card.type === "drafts") {
+          div.innerHTML = `
+            <div class="item-badge badge-draft">Brouillon #${item.id}</div>
+            <div style="font-weight: 600; font-size: 0.88rem; color: #f1f5f9;">${item.destinataire}</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">${item.sujet}</div>
+            <div class="item-desc">${item.corps}</div>
+          `;
+        } else {
+          div.innerHTML = `<div class="item-desc">${JSON.stringify(item)}</div>`;
+        }
+
+        this.contextBody.appendChild(div);
+      });
+    } else {
+      // Fallback pour les cartes non reconnues
+      const div = document.createElement("div");
+      div.className = "context-item";
+      div.innerHTML = `<div class="item-desc">${JSON.stringify(card)}</div>`;
+      this.contextBody.appendChild(div);
+    }
 
     this.contextPanel.classList.add("active");
 

@@ -1,10 +1,15 @@
 """
 CERBERUS VOX - Outils et Données pour l'Assistant Vocal
 Section 3.4 du document ADDENDUM_CERBERUS_V1_AUDIT_ET_VOX.md & Addendum 2
+Addendum 6 : Nouveaux outils pour contexte, suggestions et édition
 """
 from typing import Dict, Any, List, Optional, Tuple
 from cerberus.database.repository import Repository
 from cerberus.modules.briefing import BriefingSynthesizer
+from cerberus.engine.drafter import ResponseDrafter
+from cerberus.engine.rules import RuleEngine
+from cerberus.engine.model_cascade import get_model_cascade
+from cerberus.config import GEMINI_MODEL
 
 
 class VoxDataTools:
@@ -13,6 +18,9 @@ class VoxDataTools:
     def __init__(self, repo: Optional[Repository] = None):
         self.repo = repo or Repository()
         self.briefing_synth = BriefingSynthesizer(self.repo)
+        self.drafter = ResponseDrafter()
+        self.rules = RuleEngine()
+        self.model_cascade = get_model_cascade(self.repo)
 
     def get_oral_briefing(self) -> str:
         """Génère une version concise et adaptée à la voix du briefing quotidien."""
@@ -128,3 +136,227 @@ class VoxDataTools:
             return {"success": True, "message": f"L'alerte numéro {alert_id} a été résolue."}
         except Exception as e:
             return {"success": False, "message": f"Erreur lors de la résolution de l'alerte {alert_id} : {e}"}
+
+    # --- ADDENDUM 6: NOUVEAUX OUTILS ---
+
+    def get_email_full_context(self, draft_id: int) -> Tuple[str, Dict[str, Any]]:
+        """
+        Récupère le contexte complet d'un email pour l'Orbe (Addendum 6).
+        Retourne le texte oral et les données complètes du brouillon avec le message original.
+        """
+        draft = self.repo.get_draft_full_context(draft_id)
+        if not draft:
+            return "Brouillon introuvable.", {}
+
+        contact_nom = draft.get("contact_nom", "Inconnu")
+        sujet = draft.get("email_sujet", "Sans sujet")
+        texte_original = draft.get("texte_original_client", "Non disponible")
+        corps_propose = draft.get("corps_propose", "")
+
+        oral = (
+            f"Voici le contexte du message de {contact_nom}. "
+            f"Sujet : {sujet}. "
+            f"Le client a écrit : {texte_original[:200]}... "
+            f"La réponse proposée est : {corps_propose[:150]}..."
+        )
+
+        context_data = {
+            "type": "email_context",
+            "title": f"Contexte Email - {sujet}",
+            "contact_nom": contact_nom,
+            "contact_email": draft.get("contact_email", ""),
+            "sujet": sujet,
+            "texte_original": texte_original,
+            "corps_propose": corps_propose,
+            "draft_id": draft_id
+        }
+
+        return oral, context_data
+
+    def suggest_reply_variants(self, draft_id: int) -> Tuple[str, Dict[str, Any]]:
+        """
+        Propose 2-3 variantes de réponse pour un brouillon (Addendum 6).
+        Utilise Gemini pour générer des alternatives respectant les règles.
+        """
+        draft = self.repo.get_draft_full_context(draft_id)
+        if not draft:
+            return "Brouillon introuvable.", {}
+
+        texte_original = draft.get("texte_original_client", "")
+        corps_actuel = draft.get("corps_propose", "")
+        sujet = draft.get("email_sujet", "")
+        contact = {
+            "nom": draft.get("contact_nom", ""),
+            "email": draft.get("contact_email", ""),
+            "statut": draft.get("contact_statut", "GRISE")
+        }
+
+        # Utiliser Gemini directement pour générer des variantes avec cascade
+        variants = []
+        try:
+            if self.drafter.client:
+                from google.genai import types
+
+                # Variante 1: Plus directe/concise
+                prompt_direct = f"""Génère une variante PLUS DIRECTE et CONCISE de cette réponse :
+Sujet : {sujet}
+Message client : {texte_original}
+Réponse actuelle : {corps_actuel}
+
+Règles : moins de 100 mots, ton direct, Signature Akim — ZENITH AI."""
+
+                def call_variant1(model: str):
+                    return self.drafter.client.models.generate_content(
+                        model=model,
+                        contents=prompt_direct,
+                        config=types.GenerateContentConfig(temperature=0.3)
+                    )
+
+                result1, _ = self.model_cascade.execute_with_cascade(call_variant1, "suggest_variant1")
+                if result1:
+                    variant1_text = result1.text.strip()
+                    # Valider la variante avec rules.py (Addendum 6)
+                    eval1 = self.rules.evaluate(
+                        email_content=texte_original,
+                        contact=contact,
+                        generated_reply=variant1_text
+                    )
+                    # N'ajouter que si aucune règle bloquante
+                    if not eval1.blocking_reasons:
+                        variants.append({"style": "Plus directe", "texte": variant1_text})
+
+                # Variante 2: Plus formelle
+                prompt_formel = f"""Génère une variante PLUS FORMELLE de cette réponse :
+Sujet : {sujet}
+Message client : {texte_original}
+Réponse actuelle : {corps_actuel}
+
+Règles : vouvoiement, ton professionnel, Signature Akim — ZENITH AI."""
+
+                def call_variant2(model: str):
+                    return self.drafter.client.models.generate_content(
+                        model=model,
+                        contents=prompt_formel,
+                        config=types.GenerateContentConfig(temperature=0.3)
+                    )
+
+                result2, _ = self.model_cascade.execute_with_cascade(call_variant2, "suggest_variant2")
+                if result2:
+                    variant2_text = result2.text.strip()
+                    # Valider la variante avec rules.py (Addendum 6)
+                    eval2 = self.rules.evaluate(
+                        email_content=texte_original,
+                        contact=contact,
+                        generated_reply=variant2_text
+                    )
+                    # N'ajouter que si aucune règle bloquante
+                    if not eval2.blocking_reasons:
+                        variants.append({"style": "Plus formelle", "texte": variant2_text})
+
+        except Exception as e:
+            # Fallback : utiliser le drafter standard
+            try:
+                fallback = self.drafter.generate_draft(
+                    contact=contact,
+                    incoming_content=texte_original,
+                    incoming_subject=sujet,
+                    is_tutoiement=False
+                )
+                variants.append({"style": "Standard", "texte": fallback})
+            except:
+                return f"Erreur lors de la génération des variantes : {e}", {}
+
+        oral = f"Je vous propose {len(variants)} variantes de réponse pour ce brouillon."
+
+        context_data = {
+            "type": "suggestions",
+            "title": "Variantes de Réponse",
+            "draft_id": draft_id,
+            "variants": variants[:3]  # Maximum 3 variantes
+        }
+
+        return oral, context_data
+
+    def edit_draft(self, draft_id: int, instruction: str) -> Tuple[str, Dict[str, Any]]:
+        """
+        Modifie un brouillon selon une instruction précise (Addendum 6).
+        Le texte modifié passe par les règles de validation avant d'être accepté.
+        """
+        draft = self.repo.get_draft_full_context(draft_id)
+        if not draft:
+            return "Brouillon introuvable.", {}
+
+        texte_original = draft.get("texte_original_client", "")
+        corps_actuel = draft.get("corps_propose", "")
+        sujet = draft.get("email_sujet", "")
+        contact = {
+            "nom": draft.get("contact_nom", ""),
+            "email": draft.get("contact_email", ""),
+            "statut": draft.get("contact_statut", "GRISE")
+        }
+
+        # Générer une nouvelle version avec l'instruction
+        try:
+            # Utiliser Gemini avec l'instruction spécifique et cascade
+            nouveau_corps = None
+            if self.drafter.client:
+                from google.genai import types
+
+                prompt_edit = f"""Modifie cette réponse selon l'instruction : {instruction}
+Sujet : {sujet}
+Message client : {texte_original}
+Réponse actuelle : {corps_actuel}
+
+Génère la nouvelle version complète. Respecte les règles : moins de 130 mots, Signature Akim — ZENITH AI."""
+
+                def call_edit(model: str):
+                    return self.drafter.client.models.generate_content(
+                        model=model,
+                        contents=prompt_edit,
+                        config=types.GenerateContentConfig(temperature=0.3)
+                    )
+
+                response, _ = self.model_cascade.execute_with_cascade(call_edit, "edit_draft")
+                if response:
+                    nouveau_corps = response.text.strip()
+
+            # Fallback : régénérer sans l'instruction si Gemini échoue
+            if not nouveau_corps:
+                nouveau_corps = self.drafter.generate_draft(
+                    contact=contact,
+                    incoming_content=texte_original,
+                    incoming_subject=sujet,
+                    is_tutoiement=False
+                )
+
+            # Vérifier que le nouveau texte respecte les règles (Addendum 6)
+            eval_result = self.rules.evaluate(
+                email_content=texte_original,
+                contact=contact,
+                generated_reply=nouveau_corps
+            )
+
+            # Si les règles sont violées, refuser la modification
+            if eval_result.blocking_reasons:
+                return (
+                    f"Modification refusée. Règles violées : {' | '.join(eval_result.blocking_reasons)}",
+                    {}
+                )
+
+            # Appliquer la modification
+            self.repo.update_draft_body_temp(draft_id, nouveau_corps)
+
+            oral = f"Brouillon modifié selon votre instruction : {instruction}"
+
+            context_data = {
+                "type": "draft_updated",
+                "title": "Brouillon Modifié",
+                "draft_id": draft_id,
+                "instruction": instruction,
+                "nouveau_corps": nouveau_corps
+            }
+
+            return oral, context_data
+
+        except Exception as e:
+            return f"Erreur lors de la modification du brouillon : {e}", {}

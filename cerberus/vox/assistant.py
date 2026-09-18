@@ -2,6 +2,7 @@
 CERBERUS VOX - Assistant Conversationnel avec Function Calling Gemini Natif
 Addendum 4 : Gemini devient le cerveau decisonnel principal.
 Les garde-fous de confirmation restent geres exclusivement cote Python.
+Addendum 6 : Cascade de modèles Gemini pour résilience.
 """
 import re
 import time
@@ -16,6 +17,7 @@ except ImportError:
 
 from cerberus.config import GEMINI_API_KEY, GEMINI_MODEL
 from cerberus.vox.tools import VoxDataTools
+from cerberus.engine.model_cascade import get_model_cascade
 
 
 # ---------------------------------------------------------------------------
@@ -103,6 +105,55 @@ _TOOL_DECLARATIONS = [
         ),
         "parameters": {"type": "object", "properties": {}, "required": []}
     },
+    # --- ADDENDUM 6: NOUVEAUX OUTILS ---
+    {
+        "name": "get_email_context",
+        "description": (
+            "Recuperer le texte complet du message original du client qui a declenche ce brouillon, "
+            "pour permettre d en discuter le contenu avec Akim. "
+            "Appeler quand Akim demande de voir, lire, ou connaitre le contexte d un email avant de decider."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "draft_id": {"type": "integer", "description": "L identifiant numerique du brouillon."}
+            },
+            "required": ["draft_id"]
+        }
+    },
+    {
+        "name": "suggest_reply_variants",
+        "description": (
+            "Proposer 2 a 3 variantes de reponse differentes pour ce brouillon "
+            "(par exemple plus directe, plus formelle, ou insistant sur un point precis), "
+            "sans modifier le brouillon existant. "
+            "Appeler quand Akim demande des suggestions, des options, ou une autre facon de repondre."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "draft_id": {"type": "integer", "description": "L identifiant numerique du brouillon."}
+            },
+            "required": ["draft_id"]
+        }
+    },
+    {
+        "name": "edit_draft",
+        "description": (
+            "Modifier le texte d un brouillon existant selon une instruction precise d Akim "
+            "(ex: 'rends-le plus direct', 'ajoute le prix du pack Arduino', 'raccourcis-le'). "
+            "Ne PAS envoyer le brouillon — seulement le reecrire selon l instruction. "
+            "Appeler quand Akim demande de modifier, reecrire, ou ajuster un brouillon avant validation."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "draft_id": {"type": "integer", "description": "L identifiant numerique du brouillon."},
+                "instruction": {"type": "string", "description": "L instruction de modification precise."}
+            },
+            "required": ["draft_id", "instruction"]
+        }
+    },
 ]
 
 
@@ -139,6 +190,7 @@ class VoxAssistant:
         self.api_key = GEMINI_API_KEY if api_key is _DEFAULT_KEY else api_key
         self.client = None
         self._gemini_tools = _build_gemini_tools()
+        self.model_cascade = get_model_cascade()
 
         if self.api_key and genai:
             try:
@@ -317,6 +369,23 @@ class VoxAssistant:
         elif tool_name == "open_manual_dashboard":
             return {"text": "Voici le tableau de bord classique avec tous les details.", "context_card": None, "ui_action": "open_manual", "intent": "UI_OPEN_MANUAL"}
 
+        # --- ADDENDUM 6: NOUVEAUX OUTILS ---
+        elif tool_name == "get_email_context":
+            draft_id = int(tool_args.get("draft_id", 0))
+            oral, context_data = self.tools.get_email_full_context(draft_id)
+            return {"text": oral, "context_card": context_data, "ui_action": None, "intent": "GET_EMAIL_CONTEXT"}
+
+        elif tool_name == "suggest_reply_variants":
+            draft_id = int(tool_args.get("draft_id", 0))
+            oral, context_data = self.tools.suggest_reply_variants(draft_id)
+            return {"text": oral, "context_card": context_data, "ui_action": None, "intent": "SUGGEST_VARIANTS"}
+
+        elif tool_name == "edit_draft":
+            draft_id = int(tool_args.get("draft_id", 0))
+            instruction = tool_args.get("instruction", "")
+            oral, context_data = self.tools.edit_draft(draft_id, instruction)
+            return {"text": oral, "context_card": context_data, "ui_action": "refresh_data", "intent": "EDIT_DRAFT"}
+
         return {"text": "Je ne reconnais pas cet outil.", "context_card": None, "ui_action": None, "intent": "UNKNOWN"}
 
     def _call_gemini_with_tools(self, user_query: str) -> Dict[str, Any]:
@@ -325,15 +394,17 @@ class VoxAssistant:
         1. Envoie la requete + contexte + outils a Gemini
         2. Si Gemini appelle un outil -> on l execute -> on renvoie le resultat a Gemini
         3. Gemini formule la reponse finale en langage naturel
+        Addendum 6 : Utilise la cascade de modèles pour résilience.
         """
         if not self.client or not self._gemini_tools:
             return self._fallback_response(user_query)
 
         system_instruction = self._build_system_context()
 
-        try:
+        # Fonction pour appeler Gemini avec un modèle spécifique
+        def call_gemini_with_model(model: str):
             response = self.client.models.generate_content(
-                model=GEMINI_MODEL,
+                model=model,
                 contents=user_query,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -341,8 +412,23 @@ class VoxAssistant:
                     temperature=0.2,
                 )
             )
+            return response
 
-            candidate = response.candidates[0] if response.candidates else None
+        # Utiliser la cascade de modèles
+        result, model_used = self.model_cascade.execute_with_cascade(
+            call_gemini_with_model,
+            "initial_gemini_call"
+        )
+
+        if result is None:
+            # Échec total de la cascade
+            return self._fallback_response(user_query)
+
+        # Verrouiller le modèle pour la durée de l'échange
+        self.model_cascade.lock_model(model_used)
+
+        try:
+            candidate = result.candidates[0] if result.candidates else None
             if not candidate:
                 return self._fallback_response(user_query)
 
@@ -358,24 +444,35 @@ class VoxAssistant:
 
                 tool_result = self._dispatch_tool_call(tool_name, tool_args)
 
-                # Tour 2 : renvoyer le resultat a Gemini pour la reponse finale
-                tool_response_part = types.Part.from_function_response(
-                    name=tool_name,
-                    response={"result": tool_result["text"]}
-                )
-                final_response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=[
-                        types.Content(role="user", parts=[types.Part.from_text(text=user_query)]),
-                        types.Content(role="model", parts=[part]),
-                        types.Content(role="user", parts=[tool_response_part]),
-                    ],
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.3,
+                # Tour 2 : renvoyer le resultat a Gemini pour la reponse finale (même modèle)
+                def call_gemini_followup(model: str):
+                    tool_response_part = types.Part.from_function_response(
+                        name=tool_name,
+                        response={"result": tool_result["text"]}
                     )
+                    final_response = self.client.models.generate_content(
+                        model=model,
+                        contents=[
+                            types.Content(role="user", parts=[types.Part.from_text(text=user_query)]),
+                            types.Content(role="model", parts=[part]),
+                            types.Content(role="user", parts=[tool_response_part]),
+                        ],
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.3,
+                        )
+                    )
+                    return final_response
+
+                followup_result, _ = self.model_cascade.execute_with_cascade(
+                    call_gemini_followup,
+                    "followup_gemini_call"
                 )
-                final_text = final_response.text.strip() if final_response.text else tool_result["text"]
+
+                if followup_result is None:
+                    final_text = tool_result["text"]
+                else:
+                    final_text = followup_result.text.strip() if followup_result.text else tool_result["text"]
 
                 return {
                     "text": final_text,
@@ -386,7 +483,7 @@ class VoxAssistant:
                 }
 
             # Gemini a repondu directement (conversation generale)
-            direct_text = response.text.strip() if response.text else ""
+            direct_text = result.text.strip() if result.text else ""
             if not direct_text:
                 return self._fallback_response(user_query)
 
@@ -396,9 +493,9 @@ class VoxAssistant:
                 "requires_confirmation": bool(self.pending_confirmation)
             }
 
-        except Exception as e:
-            print(f"[!] Erreur Gemini function calling : {e}")
-            return self._fallback_response(user_query)
+        finally:
+            # Libérer le verrou après l'échange
+            self.model_cascade.unlock_model()
 
     def _fallback_response(self, user_query: str) -> Dict[str, Any]:
         """Degradation gracieuse si Gemini est indisponible (offline, pas de cle API, quota).

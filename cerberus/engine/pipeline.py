@@ -114,7 +114,8 @@ class CerberusPipeline:
                 email_destinataire=sender_email,
                 corps_propose=generated_reply,
                 motif_blocage=f"ALERTE DÉCLENCHÉE: {motif}",
-                message_id_source=message_id
+                message_id_source=message_id,
+                texte_original_client=content  # Addendum 6: stocker le texte original
             )
             self.repo.log_decision(
                 type_action="ALERTE",
@@ -133,7 +134,8 @@ class CerberusPipeline:
                 email_destinataire=sender_email,
                 corps_propose=generated_reply,
                 motif_blocage=motif_blocage,
-                message_id_source=message_id
+                message_id_source=message_id,
+                texte_original_client=content  # Addendum 6: stocker le texte original
             )
             self.repo.log_decision(
                 type_action="BROUILLON",

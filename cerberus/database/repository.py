@@ -266,16 +266,17 @@ class Repository:
         email_destinataire: str,
         corps_propose: str,
         motif_blocage: str,
-        message_id_source: Optional[str] = None
+        message_id_source: Optional[str] = None,
+        texte_original_client: Optional[str] = None
     ) -> int:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO brouillons (contact_id, message_id_source, email_sujet, email_destinataire, corps_propose, motif_blocage, statut)
-                VALUES (?, ?, ?, ?, ?, ?, 'A_VALIDER')
+                INSERT INTO brouillons (contact_id, message_id_source, email_sujet, email_destinataire, corps_propose, motif_blocage, statut, texte_original_client)
+                VALUES (?, ?, ?, ?, ?, ?, 'A_VALIDER', ?)
                 """,
-                (contact_id, message_id_source, email_sujet, email_destinataire, corps_propose, motif_blocage)
+                (contact_id, message_id_source, email_sujet, email_destinataire, corps_propose, motif_blocage, texte_original_client)
             )
             conn.commit()
             return cursor.lastrowid
@@ -334,6 +335,35 @@ class Repository:
                 (f"REJET: {raison}", draft_id)
             )
             conn.commit()
+
+    def get_draft_full_context(self, draft_id: int) -> Optional[Dict[str, Any]]:
+        """Récupère le contexte complet d'un brouillon, y compris le texte original du client (Addendum 6)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT b.*, c.nom as contact_nom, c.email as contact_email, c.statut as contact_statut
+                FROM brouillons b
+                JOIN contacts c ON b.contact_id = c.id
+                WHERE b.id = ?
+                """,
+                (draft_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+
+    def update_draft_body_temp(self, draft_id: int, new_body: str) -> bool:
+        """Met à jour provisoirement le corps d'un brouillon (Addendum 6 - edit_draft)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE brouillons SET corps_propose = ? WHERE id = ?",
+                (new_body, draft_id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
 
     # --- PROSPECTS ---
 
